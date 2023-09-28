@@ -1,0 +1,97 @@
+service: individuellExaminationQuiz
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: eu-north-1
+  profile: ${env:PROFILE}
+  iam:
+    role: ${env:LAMBDA_ROLE}
+  deploymentMethod: direct
+
+useDotenv: true
+
+custom:
+  dynamoDb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      stages:
+        - dev
+
+plugins:
+  - serverless-webpack
+  - serverless-dynamodb-local
+  - serverless-offline
+
+package:
+  individually: true
+
+functions:
+  getQuiz:
+    handler: functions/quiz/getQuiz/index.handler
+    events:
+      - httpApi:
+          path: "/api/quiz"
+          method: GET
+  postQuiz:
+    handler: functions/quiz/postQuiz/index.handler
+    events:
+      - httpApi:
+          path: "/api/quiz"
+          method: POST
+  updateQuiz:
+    handler: functions/quiz/updateQuiz/index.handler
+    events:
+      - httpApi:
+          path: "/api/quiz"
+          method: PUT
+  deleteQuiz:
+    handler: functions/quiz/deleteQuiz/index.handler
+    events:
+      - httpApi:
+          path: "/api/quiz"
+          method: DELETE
+  userLogin:
+    handler: ./functions/user/userLogin/index.handler
+    events:
+      - httpApi:
+          path: "/api/user/login"
+          method: POST
+  userSignup:
+    handler: functions/user/userSignup/index.handler
+    events:
+      - httpApi:
+          path: "/api/user/signup"
+          method: POST
+
+resources:
+  Resources:
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: examinationQuizUsersDb
+        AttributeDefinitions:
+          - AttributeName: username
+            AttributeType: S
+        KeySchema:
+          - AttributeName: username
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+    QuizTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: quizDb
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: username
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: username
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
